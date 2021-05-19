@@ -1,7 +1,7 @@
 import extend from "./extend";
 import { implement, inject } from "./util";
 import parser from './parser/parser';
-import compile from './parser/complie';
+import render from './parser/render';
 import { ElementNode } from '../j-tpl/parser/parser';
 
 function Zoey(options) {
@@ -10,9 +10,15 @@ function Zoey(options) {
   // this.$refs = [];
   // this.$root = null;
   // this.$parent = null;
+  let context = this;
   let rootNode = new ElementNode('div');
-  console.log('ast👹', this.parser(rootNode, this.template));
-  console.log('template', this.template);
+  let template = this.parser(rootNode, this.template);
+  context.constructor.prototype.template = template;
+  console.log('ast🦊', template);
+  let resultDom = context.render(context);
+  console.log('resultDom🦊', resultDom);
+  document.body.appendChild(resultDom)
+  console.log('context😡', context);
 }
 Zoey.extend = extend;
 Zoey.implement = implement;
@@ -28,6 +34,6 @@ Zoey.implement({
 
 Zoey.prototype.inject = inject;
 Zoey.prototype.parser = parser;
-Zoey.prototype.compile = compile;
+Zoey.prototype.render = render;
 
 export default Zoey;

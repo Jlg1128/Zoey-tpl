@@ -78,6 +78,7 @@ function getElseIfExpressionBody(tpl) {
       return {
         length: len - start,
         body: resultTpl,
+        optionLen: resultTpl.match(/^{#elseif([\s\S]+?)}/) ? resultTpl.match(/^{#elseif([\s\S]+?)}/)[0].length : 0,
         option: resultTpl.match(/^{#elseif([\s\S]+?)}/) ? resultTpl.match(/^{#elseif([\s\S]+?)}/)[1].trim() : '',
       }
     } else if (/^{#elseif[\s\S]+?}/.test(tpl)) {
@@ -90,6 +91,15 @@ function getElseIfExpressionBody(tpl) {
     } else {
       tpl = tpl.slice(1);
       len += 1;
+    }
+  }
+  let resultTpl = originStr.slice(start, len);
+  if (tpl.length === 0 && expressionStack.length) {
+    return {
+      length: len - start,
+      body: originStr.slice(start),
+      option: resultTpl.match(/^{#elseif([\s\S]+?)}/) ? resultTpl.match(/^{#elseif([\s\S]+?)}/)[1].trim() : '',
+      optionLen: resultTpl.match(/^{#elseif([\s\S]+?)}/) ? resultTpl.match(/^{#elseif([\s\S]+?)}/)[0].length : 0,
     }
   }
   return { length: 0, body: '' }
@@ -106,6 +116,31 @@ function parseIfExpression(parentNode, tpl) {
     // }
   }
 }
+
+function getElseExpressionBody(tpl) {
+  let originStr = tpl;
+  let expressionStack = [];
+  let start = 0;
+  let end = 0;
+  let len = 0;
+
+  while (tpl.length) {
+    if (/^{#else[\s\n\t]*}/.test(tpl)) {
+      start = len;
+      return {
+        length: originStr.length - start,
+        body: originStr.slice(start),
+      }
+    } else {
+      tpl = tpl.slice(1);
+      len += 1;
+    }
+  }
+  return {
+    length: originStr.length - start,
+    body: originStr.slice(start),
+  }
+}
 export {
   mergeObject,
   setProtoFromOptions,
@@ -113,5 +148,6 @@ export {
   inject,
   getExpressionBody,
   getElseIfExpressionBody,
+  getElseExpressionBody,
 }
 
