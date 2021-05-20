@@ -90,7 +90,7 @@ let next = 0;
 // 匹配开始标签
 let tagPrefixReg = /^<[\w]*[\t\n\s]*/;
 // 匹配标签内部属性值
-let attrReg = /[\w-]+[=]{1}[^\s\t\n>]*/g
+let attrReg = /^[\w-]+[=]{1}[^\s\t\n>]*/g
 // 匹配闭合标签
 let tagSuffixReg = /^<\/[\t\n\s]*[\w]*>/;
 // 匹配非英文
@@ -111,22 +111,23 @@ function parser(parentNode, tpl, type, condition) {
   let context = this;
   let isExpmode = !!type;
   function pushChilren(node) {
-    console.log('🦊parent', nodeStack.length);
     let parent = getParentNode();
     if (isExpmode && (parent['if'] || parent['elseif'] || parent['else']) && nodeStack.length === 0) {
-      // if (isExpmode) {
       pushConditionOrChildren(node, parent[type], type);
     } else {
       if (nodeStack.length) {
         nodeStack[nodeStack.length - 1].children.push(node);
       } else {
-        parentNode.children.push(node); ``
+        if (parentNode) {
+          parentNode.children.push(node); ``
+        } else {
+          parentNode = node;
+        }
       }
     }
     return getParentNode();
   }
   function pushConditionOrChildren(conditionNode, condition, type) {
-    // console.log('node🦊', conditionNode);
     if (conditionNode && conditionNode instanceof ElementNode) {
       conditionNode[type] = condition;
       conditionNode.condition = condition;
@@ -137,11 +138,13 @@ function parser(parentNode, tpl, type, condition) {
     if (nodeStack.length) {
       return nodeStack[nodeStack.length - 1];
     } else {
+      if (!parentNode) {
+        parentNode = new ElementNode('div');
+      };
       return parentNode;
     }
   }
-  console.log('tpl', tpl);
-  if (tpl) {
+  if (tpl && typeof tpl === 'string') {
     tpl = tpl.replace(/\n/g, '');
   }
   while (true) {
@@ -165,6 +168,7 @@ function parser(parentNode, tpl, type, condition) {
           if (i === 0 && tpl.length === 0) {
             return pushChilren(result);
           }
+          break;
         }
       }
       tpl = tpl.slice(tagInitialStr.length);
@@ -191,17 +195,14 @@ function parser(parentNode, tpl, type, condition) {
     }
     else if (/^{/.test(tpl)) {
       if (/^{#if/.test(tpl)) {
-        console.log('🦊tpl', tpl);
         let len = tpl.match(/^{#if([\s\S]+?)}/).length;
         let option = tpl.match(/^{#if([\s\S]+?)}/)[1].trim();
         let ifBody = getExpressionBody(tpl);
-        console.log('ifBody', ifBody);
         len = ifBody.length;
         ifBody = ifBody.body.match(/^{#if[\s\S]+?}([\s\S]+?){\/if}$/)[1];
         getParentNode().if = option;
         pushConditionOrChildren(null, option, 'if');
         let node = parser(getParentNode(), ifBody, 'if', option);
-        console.log('parent', getParentNode());
         tpl = tpl.slice(len);
       }
       else if (/^{#elseif/.test(tpl)) {
@@ -212,11 +213,9 @@ function parser(parentNode, tpl, type, condition) {
         getParentNode().elseif = option;
         pushConditionOrChildren(null, option, 'elseif');
         let node = parser(getParentNode(), elseifBody, 'elseif', option);
-        console.log('parentelse', getParentNode());
         tpl = tpl.slice(elseifBodyObj.length);
       }
       else if (/^{#else[\s\n\t]*}/.test(tpl)) {
-        getParentNode().elseif = 'true';
         pushConditionOrChildren(null, '', 'else');
         let len = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[0].length;
         let elseBody = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[1]
@@ -245,9 +244,7 @@ function parser(parentNode, tpl, type, condition) {
       if (tpl.length === 0) {
         return getParentNode();
       }
-      console.log('🐽🐽', tpl.slice(0, 1));
       tpl = tpl.slice(1);
-      console.log('无匹配🦊🦊🦊🦊🦊', tpl);
     }
   }
   return getParentNode();
@@ -267,24 +264,6 @@ function handleParseAttr(key, value) {
       return new ExpressionNode(value.replace(/[{}]+/g, ''), value);
       break;
   }
-}
-
-function handleParseExpressionTpl(tpl) {
-  // 判断是否是表达式
-  if (/{(?=#)/.test(tpl)) {
-    if (!ifEndReg.test(tpl)) {
-      console.error('if语法错误');
-    } else {
-      // if (/{(?=#if)/.test(tpl))
-    }
-  } else {
-    // 是普通的参数赋值进入此处
-    return new ExpressionNode()
-  }
-}
-
-function parseIf(tpl) {
-
 }
 
 export default parser;

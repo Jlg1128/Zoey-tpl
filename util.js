@@ -24,8 +24,22 @@ function implement(obj) {
   }
 }
 
-function inject(parentNode, node) {
-  parentNode.appendChild(node);
+function extend(fn, obj) {
+  Object.keys(obj).forEach((property) => {
+    if (obj.hasOwnProperty(property)) {
+      if (fn.prototype[property] === undefined) {
+        fn.prototype[property] = obj[property];
+      }
+    }
+  })
+  return fn;
+}
+
+function inject(parentNode) {
+  if (!isHtmlELement(parentNode)) {
+    throw new Error('注入的不是dom节点');
+  }
+  parentNode.appendChild(this.dom);
 }
 
 function getExpressionBody(tpl) {
@@ -141,6 +155,10 @@ function getElseExpressionBody(tpl) {
     body: originStr.slice(start),
   }
 }
+
+function isHtmlELement(node) {
+  return node && typeof node === 'object' && node.nodeType && typeof node.nodeName === 'string';
+}
 export {
   mergeObject,
   setProtoFromOptions,
@@ -149,5 +167,7 @@ export {
   getExpressionBody,
   getElseIfExpressionBody,
   getElseExpressionBody,
+  extend,
+  isHtmlELement,
 }
 

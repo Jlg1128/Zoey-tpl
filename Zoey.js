@@ -2,24 +2,32 @@ import extend from "./extend";
 import { implement, inject } from "./util";
 import parser from './parser/parser';
 import render from './parser/render';
+import {
+  watcher,
+  digest,
+  patch,
+} from './watcher';
 import { ElementNode } from '../j-tpl/parser/parser';
 
 function Zoey(options) {
-  // const { template = '', name = '', data = {} } = options;
-  // this._children = [];
-  // this.$refs = [];
-  // this.$root = null;
-  // this.$parent = null;
   let context = this;
   let rootNode = new ElementNode('div');
-  let template = this.parser(rootNode, this.template);
+  let template;
+  if (typeof this.template === 'string') {
+    template = this.parser(null, this.template);
+  }
+  function listener(oldValue, newValue) {
+    console.log('😀值改变了')
+  }
+  if (template) {
+    let oldValue = JSON.parse(JSON.stringify(this.data));
+    this.watcher('data', listener, oldValue)
+  }
   context.constructor.prototype.template = template;
-  console.log('ast🦊', template);
-  let resultDom = context.render(context);
-  console.log('resultDom🦊', resultDom);
-  document.body.appendChild(resultDom)
-  console.log('context😡', context);
+  let resultDom = context.render();
+  context.dom = resultDom;
 }
+Zoey.prototype.data = {};
 Zoey.extend = extend;
 Zoey.implement = implement;
 Zoey.implement({
@@ -35,5 +43,8 @@ Zoey.implement({
 Zoey.prototype.inject = inject;
 Zoey.prototype.parser = parser;
 Zoey.prototype.render = render;
+Zoey.prototype.watcher = watcher;
+Zoey.prototype.digest = digest;
+Zoey.prototype.patch = patch;
 
 export default Zoey;

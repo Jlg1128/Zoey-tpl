@@ -1,16 +1,19 @@
 import { ElementNode } from './parser';
 // 赋值
-function render(context) {
+function render() {
+  let context = this;
   let result = [];
   let ast = context.template;
   let { data } = context;
-  let finalDomNode = renderElement(ast, data);
+  let finalDomNode = null;
+  if (ast) {
+    finalDomNode = renderElement(ast, data);
+  }
   function renderElement(astNode, data) {
     let node = createElement(astNode);
     if (astNode.conditions && astNode.conditions.length) {
       let currentCondition = getConditionResult(astNode.conditions);
       astNode.children = currentCondition ? currentCondition : [];
-      console.log('🐽', currentCondition);
       astNode.children.forEach((childAst) => {
         node.appendChild(renderElement(childAst, data));
       })
@@ -52,6 +55,7 @@ function render(context) {
         if (context[handlerName] instanceof Function) {
           context[handlerName].apply(context, getProcessedParam(paramsArr))
         }
+        context.digest();
       });
       return targetNode;
     }
@@ -81,7 +85,11 @@ function render(context) {
         if (/[\s\t\n]*{([\w]+?)}/.test(variableName)) {
           return data[getParsedVariableName(variableName)];
         } else {
-          return variableName.trim();
+          if (variableName) {
+            return variableName.trim();
+          } else {
+            return ''
+          }
         }
       } else {
         return '';
@@ -89,28 +97,39 @@ function render(context) {
     }
     function getParsedVariableName(variableName) {
       let variableNameMatchedArr = variableName.match(/[\s\t\n]*{([\s\S]+?)}/);
-      console.log('variableName', variableName);
-      console.log('variableNameMatchedArr', variableNameMatchedArr);
       return variableNameMatchedArr[1].trim();
     }
     return domnode;
   }
-
   function getConditionResult(conditions) {
+    let expressionKey = [];
     let result = conditions.map((conditionObj) => {
       if (conditionObj.if && parseOption(conditionObj.if)) {
+        expressionKey.push('if');
         return conditionObj;
       } else if (conditionObj.elseif && parseOption(conditionObj.elseif)) {
+        expressionKey.push('elseif');
         return conditionObj;
       } else if (conditionObj.hasOwnProperty('else')) {
+        expressionKey.push('else');
         return conditionObj;
       } else {
         return null;
       }
     });
-    console.log('🐶', result);
-    console.log('🐶', result.filter((item) => item)[0]);
-    return result.filter((item) => item);
+    // 筛选if表达式情况Fragment类型的元素
+    result = result.filter((item) => item);
+    return result.filter((item) => item[expressionKey[0]] === result[0][expressionKey[0]]);
+  }
+  function ifConditionRepeat(parentNodeConditions, currentConditionNode, type) {
+    let result = false, resultIndex = -1;
+    parentNodeConditions.forEach((parentConditionNode, index) => {
+      if (parentConditionNode.hasOwnProperty(type) && parentConditionNode[type] === currentConditionNode[type]) {
+        result = true;
+        resultIndex = index;
+      }
+    });
+    return { isRepeat: result, index: resultIndex };
   }
   function parseOption(optionTpl) {
     if (/=/.test(optionTpl)) {

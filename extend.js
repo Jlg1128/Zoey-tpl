@@ -10,27 +10,32 @@ function extend(options) {
   let supr = this;
   let suprOptions = supr.prototype;
   // 借用构造函数传递增强子类实例属性（支持传参和避免篡改）
+
+  supr.prototype.sayName = function(){
+    alert(this.name);
+  };
   function fn(ops) {
-    supr.apply(this, options);
+    supr.apply(this);
   }
 
+  inheritPrototype(fn, supr);
   fn.prototype = new supr();
   fn.prototype.constructor = fn;
+
+  fn.prototype.sayAge = function(){
+    alert(this.age);
+  }
   let proto = fn.prototype;
   function implement(options) {
     for (var key in options) {
-      // util.mergeObject(proto[key], options[key]);
       proto[key] = options[key];
     }
   }
 
   fn.extend = extend;
   fn.implement = implement;
-  
-  fn.implement(options);
-  // util.mergeObject(new fn(), options);
+  fn.implement(options)
   // 将父类原型指向子类
-  // inheritPrototype(fn, supr);
   return fn;
 }
 
