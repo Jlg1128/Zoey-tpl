@@ -3,9 +3,7 @@ import extend from './extend';
 import Zoey from './Zoey';
 import './index.css'
 
-const template = '<a-user></a-user>';
 let rootNode = getRootNode();
-rootNode.innerHTML = template;
 let node = document.createElement('div');
 node.innerHTML = '呵呵';
 
@@ -21,7 +19,6 @@ let Com1 = Zoey.extend({
   <span>这是{username}
   </span>
   {#else}
-  <span>哈哈哈哈</span>
   <span>哈哈哈哈</span>
   {/if}
   </h1>`,

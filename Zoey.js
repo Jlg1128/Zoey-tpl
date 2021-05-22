@@ -11,7 +11,6 @@ import { ElementNode } from '../j-tpl/parser/parser';
 
 function Zoey(options) {
   let context = this;
-  let rootNode = new ElementNode('div');
   let template;
   if (typeof this.template === 'string') {
     template = this.parser(null, this.template);
@@ -24,8 +23,14 @@ function Zoey(options) {
     this.watcher('data', listener, oldValue)
   }
   context.constructor.prototype.template = template;
-  let resultDom = context.render();
-  context.dom = resultDom;
+  console.log('😡context', context);
+  console.log('😡contextTemplate', context.template);
+  let renderDom = context.render();
+  if (context.$root) {
+    $root.appendChild(renderDom);
+    renderDom = $root;
+  }
+  context.renderDom = renderDom;
 }
 Zoey.prototype.data = {};
 Zoey.extend = extend;

@@ -39,7 +39,8 @@ function inject(parentNode) {
   if (!isHtmlELement(parentNode)) {
     throw new Error('注入的不是dom节点');
   }
-  parentNode.appendChild(this.dom);
+  this.$root = parentNode;
+  parentNode.appendChild(this.renderDom);
 }
 
 function getExpressionBody(tpl) {

@@ -6,6 +6,7 @@ function render() {
   let ast = context.template;
   let { data } = context;
   let finalDomNode = null;
+  this.$root;
   if (ast) {
     finalDomNode = renderElement(ast, data);
   }
@@ -78,6 +79,7 @@ function render() {
       })
       return targetNode;
     }
+
     function getParsedVariable(variableName, sign) {
       let signArr = sign.trim().split('');
       new RegExp(`[\\s\\t\\n]*${signArr[0]}([\\s\\S]+?)${signArr[1]}`)
@@ -95,12 +97,14 @@ function render() {
         return '';
       }
     }
+
     function getParsedVariableName(variableName) {
       let variableNameMatchedArr = variableName.match(/[\s\t\n]*{([\s\S]+?)}/);
       return variableNameMatchedArr[1].trim();
     }
     return domnode;
   }
+
   function getConditionResult(conditions) {
     let expressionKey = [];
     let result = conditions.map((conditionObj) => {

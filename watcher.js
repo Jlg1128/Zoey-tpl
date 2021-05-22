@@ -43,7 +43,13 @@ function digest() {
 
 function patch() {
   let dom = this.render();
-  document.body.appendChild(dom);
+  let $root = this.$root;
+  if ($root) {
+    $root.rep(dom);
+
+  } else {
+    document.body.appendChild(dom);
+  }
 }
 
 

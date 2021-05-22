@@ -26,6 +26,23 @@ let attrTypesMap = {
   style: 'style',
 }
 
+export function ComponentNode(tag, text = '', type) {
+  this.attrs = [];
+  this.children = [];
+  this.tag = tag;
+  this.type = tagTypesMap[tag];
+  if (tag === 'text') {
+    this.text = text;
+  }
+  if (type && type === 'if') {
+    this.if = this.condition;
+  };
+  if (type && type === 'elseif') {
+    this.elseif = type || '';
+  }
+  this.conditions = [];
+}
+
 export function ElementNode(tag, text = '', type) {
   this.attrs = [];
   this.children = [];
@@ -88,13 +105,13 @@ let reg = /\w/g;
 let next = 0;
 // /^<(?!\/[a-zA-Z]+?)[\t\n\s]*/
 // 匹配开始标签
-let tagPrefixReg = /^<[\w]*[\t\n\s]*/;
+let tagPrefixReg = /^<[\w-]*[\t\n\s]*/;
 // 匹配标签内部属性值
 let attrReg = /^[\w-]+[=]{1}[^\s\t\n>]*/g
 // 匹配闭合标签
-let tagSuffixReg = /^<\/[\t\n\s]*[\w]*>/;
+let tagSuffixReg = /^<\/[\t\n\s]*[\w-]*>/;
 // 匹配非英文
-let notWordReg = /[^\w]/g;
+let notWordReg = /[^\w-]/g;
 // 是否为innerHtml
 let innerReg = /^>(?![\t\n])([\s\S]*?)</;
 // 是否是表达式
@@ -138,8 +155,9 @@ function parser(parentNode, tpl, type, condition) {
     if (nodeStack.length) {
       return nodeStack[nodeStack.length - 1];
     } else {
+      // 具体逻辑待处理
       if (!parentNode) {
-        parentNode = new ElementNode('div');
+        parentNode = context.$root;
       };
       return parentNode;
     }
@@ -176,7 +194,12 @@ function parser(parentNode, tpl, type, condition) {
     else if (tagPrefixReg.test(tpl)) {
       let tagInitialStr = tpl.match(tagPrefixReg)[0];
       let tag = tagInitialStr.replace(notWordReg, '');
-      let node = new ElementNode(tag);
+      let node;
+      if (!elementTag.includes(tag)) {
+        node = new ElementNode(tag);
+      } else {
+        node = new ElementNode(tag);
+      }
       pushChilren(node);
       nodeStack.push(node);
       tpl = tpl.slice(tagInitialStr.length);
