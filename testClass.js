@@ -1,40 +1,11 @@
-const { isEqual } = require('loadsh');
-var watchers = [];
+const _ = require('loadsh');
 
-var $watcher = {
-  watcher(variable, callback, option) {
-    watchers.push(callback);
-    console.log();
-  },
-  digest(oldVar, newVar) {
-    
-  }
+let obj = {
+  name: 'jlg',
 }
 
-function Father() {
-  this.age = 10;
-}
+let newobj = _.cloneDeep(obj);
+obj.age = 10;
+console.log(newobj);
 
-function Son() {
-}
-
-function test() {
-  if (this.user) {
-    this.user.push(1);
-  } else {
-    this.user = [1];
-  }
-} 
-Father.prototype.test = test;
-Son.prototype = new Father();
-Son.prototype.constructor = Son;
-
-let father = new Father();
-father.test();
-
-let son = new Son();
-son.test();
-
-console.log(father.user);
-console.log(son.user);
 

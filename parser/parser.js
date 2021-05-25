@@ -3,6 +3,7 @@ import {
   parseIfExpression,
   getElseIfExpressionBody,
   getElseExpressionBody,
+  handleParseExpression,
 } from '../util';
 // 词法分析
 // let tpl = `<div class='show'>{#if show}<span>{username}</span>{/if}</div>`;
@@ -26,23 +27,6 @@ let attrTypesMap = {
   style: 'style',
 }
 
-export function ComponentNode(tag, text = '', type) {
-  this.attrs = [];
-  this.children = [];
-  this.tag = tag;
-  this.type = tagTypesMap[tag];
-  if (tag === 'text') {
-    this.text = text;
-  }
-  if (type && type === 'if') {
-    this.if = this.condition;
-  };
-  if (type && type === 'elseif') {
-    this.elseif = type || '';
-  }
-  this.conditions = [];
-}
-
 export function ElementNode(tag, text = '', type) {
   this.attrs = [];
   this.children = [];
@@ -62,7 +46,7 @@ export function ElementNode(tag, text = '', type) {
 
 function AttrNode(attrName, value) {
   this.name = attrName; // 'class'
-  this.type = attrTypesMap[attrName]; // 'attribute' | 'if'
+  this.type = attrTypesMap[attrName] || 'params'; // 'attribute' | 'if'
   this.value = value.toString();
 }
 
@@ -72,18 +56,25 @@ function EventNode(eventName, handler) {
   this.type = 'event';
 }
 
+function ComponentNode(componentName, componentInstance, params) {
+  this.type = 'component';
+  this.name = componentName;
+  this.context = componentInstance;
+  this.params = params;
+}
 function ExpressionNode(name, expressionTpl, data, option) {
-  this.expressionTpl = expressionTpl;
-  let self = this;;
-  this.body = null;
-  this.setBody = function (data) {
-    self.value = parser(self, expressionTpl);
-  }
-  // 条件表达式
-  this.option = option;
-  this.type = 'expression';
-  this.name = name; // 'attribute' | 'if'
-  this.value = null;
+  // this.expressionTpl = expressionTpl;
+  // this.tpl = 
+  // let self = this;;
+  // this.body = null;
+  // this.setBody = function (data) {
+  //   self.value = parser(self, expressionTpl);
+  // }
+  // // 条件表达式
+  // this.option = option;
+  // this.type = 'expression';
+  // this.name = name; // 'attribute' | 'if'
+  // this.value = null;
 }
 
 function IfExpressionNode(name, expressionTpl, data, option) {
@@ -93,12 +84,6 @@ function IfExpressionNode(name, expressionTpl, data, option) {
   this.type = 'expression';
   this.name = name; // 'attribute' | 'if'
   this.value = null;
-}
-
-function parseExpression(expressionTpl, data) {
-  let variableName = expressionTpl.replace(/[^\w]+/g, '');
-  variableName = data[variableName];
-  return data[variableName];
 }
 
 let reg = /\w/g;
@@ -133,7 +118,11 @@ function parser(parentNode, tpl, type, condition) {
       pushConditionOrChildren(node, parent[type], type);
     } else {
       if (nodeStack.length) {
-        nodeStack[nodeStack.length - 1].children.push(node);
+        // @todo 写入body
+        let currentNode = nodeStack[nodeStack.length - 1];
+        if (currentNode.type !== 'component') {
+          nodeStack[nodeStack.length - 1].children.push(node);
+        }
       } else {
         if (parentNode) {
           parentNode.children.push(node); ``
@@ -171,7 +160,8 @@ function parser(parentNode, tpl, type, condition) {
     }
     // 匹配标签开始前缀
     if (!/<|>/g.test(tpl)) {
-      return new ElementNode('text', tpl)
+      pushChilren(new ElementNode('text', tpl));
+      tpl = tpl.slice(tpl.length);
     }
     else if (tagSuffixReg.test(tpl)) {
       let tagInitialStr = tpl.match(tagSuffixReg)[0];
@@ -196,7 +186,12 @@ function parser(parentNode, tpl, type, condition) {
       let tag = tagInitialStr.replace(notWordReg, '');
       let node;
       if (!elementTag.includes(tag)) {
-        node = new ElementNode(tag);
+        // 代表是Component，直接获取组件
+        if (context.components && context.components[tag]) {
+          node = new ComponentNode(tag, context.components[tag], [])
+        } else {
+          node = new ElementNode('text', '')
+        }
       } else {
         node = new ElementNode(tag);
       }
@@ -210,10 +205,15 @@ function parser(parentNode, tpl, type, condition) {
       if (/\(/.test(tpl)) {
         tagInitialStr = tpl.match(/[\w-]+[=]{1}[\s\S]+?}/g)[0];
       }
-      console.log('😁', tagInitialStr);
       let typeAndValueArr = tagInitialStr.split('=');
       let attrNode = handleParseAttr(typeAndValueArr[0], typeAndValueArr[1].replace(/'/g, ''));
-      nodeStack[nodeStack.length - 1].attrs.push(attrNode);
+      let currentNode = nodeStack[nodeStack.length - 1];
+      if (currentNode.type === 'component') {
+        console.log('currentNode', currentNode);
+        currentNode.params.push(attrNode);
+      } else {
+        currentNode.attrs.push(attrNode);
+      }
       tpl = tpl.slice(tagInitialStr.length);
     }
     else if (/^{/.test(tpl)) {
@@ -242,7 +242,14 @@ function parser(parentNode, tpl, type, condition) {
         pushConditionOrChildren(null, '', 'else');
         let len = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[0].length;
         let elseBody = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[1]
-        let node = parser(getParentNode(), elseBody, 'else', '');
+        parser(getParentNode(), elseBody, 'else', '');
+        tpl = tpl.slice(len);
+      }
+      else if (/^{#inc[\s\n\t]*[\s\S]+}/.test(tpl)) {
+        let len = tpl.match(/^{#inc[\s\n\t]*([\s\S]+?)}/)[0].length;
+        let incBody = tpl.match(/^{#inc[\s\n\t]*([\s\S]+?)}/)[1];
+        let resultTpl = handleParseExpression.call(context, incBody, false);
+        parser(getParentNode(), eval(resultTpl));
         tpl = tpl.slice(len);
       }
       else {
@@ -283,10 +290,10 @@ function handleParseAttr(key, value) {
       return new EventNode('click', value);
     default:
       // 参数
-      console.log('value', value);
-      return new ExpressionNode(value.replace(/[{}]+/g, ''), value);
-      break;
+      return new AttrNode(key, value);
   }
 }
+
+
 
 export default parser;

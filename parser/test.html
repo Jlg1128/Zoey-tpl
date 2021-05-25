@@ -7,17 +7,18 @@
   <title>Document</title>
 </head>
 <body>
+  <ul>
+    <li>1</li>
+    <li>2</li>
+    <li id="li1">3</li>
+  </ul>
+  <div>
+    123
+  </div>
+  <span class="">哈哈哈</span>
   <script>
-    let div = document.createElement('div');
-    div.innerHTML = 'hhhhhhh'
-    let eventName = 'onclick';
-    const handler = () => {
-      console.log('123123');
-    }
-    eventName = eventName.replace(/^on/, '');
-    let event = new Event(eventName);
-    window.addEventListener(eventName, handler);
-    div.child
+    let text = document.createTextNode('123');
+    console.dir(text);
   </script>
 </body>
 </html>

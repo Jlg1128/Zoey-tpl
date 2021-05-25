@@ -1,3 +1,4 @@
+import parser from './parser/parser';
 import * as util from './util';
 
 function extend(options) {
@@ -32,9 +33,18 @@ function extend(options) {
     }
   }
 
-  fn.extend = extend;
   fn.implement = implement;
-  fn.implement(options)
+  fn.implement(options);
+  
+  if (options.hasOwnProperty('name')) {
+    let componentName = options.name;
+    let protoComponents = supr.prototype.components;
+    protoComponents = typeof protoComponents === 'object' ? protoComponents : {}
+    let comObj = {};
+    console.log('extend', new fn(options));
+    comObj[componentName] = new fn(options);
+    supr.prototype.components = Object.assign(protoComponents, comObj)
+  }
   // 将父类原型指向子类
   return fn;
 }

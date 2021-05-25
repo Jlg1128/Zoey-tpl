@@ -160,6 +160,19 @@ function getElseExpressionBody(tpl) {
 function isHtmlELement(node) {
   return node && typeof node === 'object' && node.nodeType && typeof node.nodeName === 'string';
 }
+
+// 解析表达式，this必须指向实例
+function handleParseExpression(tpl, needThis) {
+  tpl = tpl.replace(/{|}/g, '');
+  tpl = tpl.replace(/([\w\$\.\{\}'"]+)/g, ($1, $2) => {
+    $2 = $2.trim();
+    if (!/^this./.test($2) && !/'|"/.test($2)) {
+      return needThis ? `this.data.${$2}` : `data.${$2}`;
+    }
+    return $2;
+  })
+  return tpl;
+}
 export {
   mergeObject,
   setProtoFromOptions,
@@ -170,5 +183,6 @@ export {
   getElseExpressionBody,
   extend,
   isHtmlELement,
+  handleParseExpression,
 }
 
