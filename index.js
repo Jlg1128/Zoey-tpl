@@ -10,24 +10,20 @@ node.innerHTML = '呵呵';
 // new Zoey().$inject(getRootNode(), node);
 let Com2 = Zoey.extend({
   name: 'modal',
-  template: `<span>{username}{pid}</span>`,
+  template: `<span class={modalclass} on-click={this.handleShow()}>{username}{pid}</span>`,
   data: {
     pid: 10211,
+    modalclass: 'modal-show'
+  },
+  handleShow() {
+    this.data.pid ++;
+    console.log('🥶🥶🥶🥶');
+    console.log(this instanceof Zoey);
   },
 })
 
 let Com1 = Zoey.extend({
-  // template: `<h1
-  // on-click={this.handleClick(show,$event)} 
-  // class={myclass}>
-  // {#if show}
-  // <span>这是{username}
-  // </span>
-  // {#else}
-  // <span>哈哈哈哈</span>
-  // {/if}
-  // </h1>`,
-  template: `<div><span>{myclass}</span><modal username={modalName}></modal></div>`,
+  template: `<div><modal username={modalName}></modal></div>`,
   data: {
     ok: true,
     show: false,
@@ -37,20 +33,13 @@ let Com1 = Zoey.extend({
   },
   show: true,
   body: '<h1>你好我是何帆</h1>',
-  handleClick(value, $event) {
-    this.data.show = !this.data.show;
-  }
+  // handleClick(value, $event) {
+  //   console.log('🦊🦊');
+  //   console.log(this);
+  //   this.data.myclass = 'hhh';
+  // }
 })
 
-let Com3 = Zoey.extend({
-  template: `<div><modal></modal></div>`,
-  data: {
-  }
-})
-
-let Component = new Com1();
-console.dir(rootNode);
-new Com3().$inject(rootNode)
-console.log('Component', Component);
-console.log('Component2', new Com2());
-console.log('Component3', new Com3());
+new Com1().$inject(rootNode);
+console.log('com1', new Com1());
+console.log('com2', new Com2());

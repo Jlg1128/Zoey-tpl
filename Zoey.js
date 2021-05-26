@@ -21,17 +21,16 @@ function Zoey(options) {
   function listener(oldValue, newValue) {
     console.log('😀值改变了')
   }
+
   if (template) {
     let oldValue = JSON.parse(JSON.stringify(this.data));
     this.watcher('data', listener, oldValue);
-    console.log('template', template);
     context.constructor.prototype.template = template;
     context.current = cloneDeep(template);
     context.setValue(context.current, this.data);
-    console.log('🦊🦊', context);
     let renderDom = context.render();
     if (context.$root) {
-      $root.appendChild(renderDom);
+      context.$root.appendChild(renderDom);
       renderDom = $root;
     }
     context.renderDom = renderDom;

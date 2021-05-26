@@ -40,7 +40,9 @@ function inject(parentNode) {
     throw new Error('注入的不是dom节点');
   }
   this.$root = parentNode;
-  parentNode.appendChild(this.renderDom);
+  if (this.renderDom) {
+    parentNode.appendChild(this.renderDom);
+  }
 }
 
 function getExpressionBody(tpl) {
@@ -122,7 +124,6 @@ function getElseIfExpressionBody(tpl) {
 
 function parseIfExpression(parentNode, tpl) {
   if (/^{\/if}/.test(tpl)) {
-    console.log(tpl.match(/^{\/if[\s\S]+?}/)[0]);
     let condition = tpl.match(/^{#if[\s\t\n]+([\s\S]+?)}/)[1];
     // let conditionObj = {
     //   children: [],

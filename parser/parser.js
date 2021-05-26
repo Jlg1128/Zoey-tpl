@@ -56,7 +56,7 @@ function EventNode(eventName, handler) {
   this.type = 'event';
 }
 
-function ComponentNode(componentName, componentInstance, params) {
+export function ComponentNode(componentName, componentInstance, params) {
   this.type = 'component';
   this.name = componentName;
   this.context = componentInstance;
@@ -209,7 +209,6 @@ function parser(parentNode, tpl, type, condition) {
       let attrNode = handleParseAttr(typeAndValueArr[0], typeAndValueArr[1].replace(/'/g, ''));
       let currentNode = nodeStack[nodeStack.length - 1];
       if (currentNode.type === 'component') {
-        console.log('currentNode', currentNode);
         currentNode.params.push(attrNode);
       } else {
         currentNode.attrs.push(attrNode);
@@ -266,8 +265,10 @@ function parser(parentNode, tpl, type, condition) {
       let innerTpl, len;
       innerTpl = tpl.match(innerReg)[1];
       len = tpl.match(innerReg)[0].length - 1
-      let textNode = new ElementNode('text', innerTpl);
-      pushChilren(textNode);
+      if (innerTpl) {
+        let textNode = new ElementNode('text', innerTpl);
+        pushChilren(textNode);
+      }
       tpl = tpl.slice(len);
     }
     else {

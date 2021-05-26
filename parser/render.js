@@ -1,4 +1,5 @@
-import parser, { ElementNode } from './parser';
+import Zoey from '../Zoey';
+import parser, { ElementNode, ComponentNode } from './parser';
 import { cloneDeep } from 'loadsh';
 import { handleParseExpression } from '../util';
 
@@ -6,6 +7,7 @@ export function setValue(astNode, data) {
   let currentNode = astNode;
   let result = [];
   let finalAstNode = null;
+  // 处理if条件，将conditions根据当前data赋值到currentNode的children上
   if (currentNode.conditions && currentNode.conditions.length) {
     let currentCondition = getConditionResult(currentNode.conditions, data);
     currentNode.children = currentCondition ? currentCondition : [];
@@ -21,11 +23,13 @@ export function setValue(astNode, data) {
       break;
   }
 
+  // 主要是相关赋值操作，接下来的render步骤需要着重区分component节点和普通Element节点
   if (currentNode.type === 'component') {
-    let componentInstanceData = cloneDeep(currentNode.context.data);
-    let currentAst = cloneDeep(currentNode.context.template);
-    componentInstanceData = Object.assign(componentInstanceData, parseComponentParams(currentNode.params, data));
-    currentNode = setValue(currentAst, componentInstanceData);
+    let componentContext = currentNode.context;
+    let componentInstanceData = Object.assign(componentContext.data, parseComponentParams(currentNode.params, data));
+    componentContext.current = cloneDeep(componentContext.template);
+    componentContext.setValue(componentContext.current, componentInstanceData);
+    currentNode = componentContext;
   } else {
     currentNode.attrs.forEach((attr) => setAttrValue(attr, data))
     currentNode.children = currentNode.children.map((childAst) => setValue(childAst, data))
@@ -38,17 +42,18 @@ function parseComponentParams(params, data) {
     let key = paramObj.name;
     let { value } = paramObj;
     value = handleParseExpression(value, false)
-    console.log('🐽', value);
     extraData[key] = eval(value);
   })
   return extraData;
 }
+
 // 赋值
 function render(astNode) {
   let context = this;
   let result = [];
   let { data } = context;
   let { current } = context;
+  let componentContext = null;
   let needRenderASt = null;
 
   if (astNode) {
@@ -56,11 +61,18 @@ function render(astNode) {
   } else {
     needRenderASt = current;
   }
+
   let finalDomNode = null;
   let currentRenderDom = renderElement(needRenderASt, data);
   finalDomNode = currentRenderDom;
 
   function renderElement(astNode, data) {
+    let res = astNode instanceof ElementNode;
+    if (!(astNode instanceof ElementNode)) {
+      componentContext = astNode;
+      astNode = astNode.current;
+      data = astNode.data;
+    }
     let node = createElement(astNode);
     astNode.children.forEach((childAst) => {
       // 无法appendChild的节点
@@ -82,7 +94,6 @@ function render(astNode) {
         domnode = document.createTextNode(text);
         break;
       case 'component':
-
       default:
         throw new TypeError(`未识别该标签名--${type}`)
         break;
@@ -95,18 +106,31 @@ function render(astNode) {
     function createEvent(targetNode, eventName, handlerName, paramsArr) {
       let event = new Event(eventName);
       targetNode.addEventListener(eventName, function ($event) {
+        let currentContext = componentContext || context;
+        // 处理模版中携带的形式参数,例如on-click={this.handle($event, show)}
         function getProcessedParam(paramsArr) {
           return paramsArr.map((paramName) => {
             if (paramName === '$event') {
               return $event;
             }
-            return context.data[paramName];
+            return currentContext.data[paramName];
           })
         }
-        if (context[handlerName] instanceof Function) {
-          context[handlerName].apply(context, getProcessedParam(paramsArr))
+        if (currentContext[handlerName] instanceof Function) {
+          currentContext[handlerName].apply(currentContext, getProcessedParam(paramsArr))
         }
-        context.digest();
+        // 判断是否是组件的context;
+        if (componentContext) {
+          if (componentContext.watchersArr) {
+            context.watchersArr = context.watchersArr.concat(componentContext.watchersArr);
+          }
+        }
+        // 如果是组件的上下文则需要将context代入到digest中;
+        if (componentContext) {
+          context.digest(componentContext);
+        } else {
+          context.digest();
+        }
       });
       return targetNode;
     }
@@ -119,7 +143,7 @@ function render(astNode) {
             break;
           case 'event':
             let parsedHandlerName = getParsedVariableName(attrObj.handler, '{(')
-            let paramsArr = parsedHandlerName.match(/\(([\s\S]*)\)/)[1].replace(/\s/g, '').split(',')
+            let paramsArr = parsedHandlerName.match(/\(([\s\S]*)\)/)[1].replace(/\s/g, '').split(',').filter((item) => item);
             createEvent(targetNode, attrObj.name, parsedHandlerName.replace(/^this./, '').replace(/(\([\s\S]*\))/, ''), paramsArr);
             break;
           default:
@@ -139,7 +163,6 @@ function getParsedVariable(variableName, sign, data) {
   new RegExp(`[\\s\\t\\n]*${signArr[0]}([\\s\\S]+?)${signArr[1]}`)
   if (variableName) {
     if (/[\s\t\n]*{([\w]+?)}/.test(variableName)) {
-      console.log('data', data)
       return data[getParsedVariableName(variableName)];
     } else {
       if (variableName) {

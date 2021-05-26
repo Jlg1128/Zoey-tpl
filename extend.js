@@ -1,4 +1,5 @@
 import parser from './parser/parser';
+import { getRootNode } from './env';
 import * as util from './util';
 
 function extend(options) {
@@ -9,7 +10,7 @@ function extend(options) {
   }
   // 父类初始化实例属性和原型属性
   let supr = this;
-  let suprOptions = supr.prototype;
+  let suprOptions = supr.protaotype;
   // 借用构造函数传递增强子类实例属性（支持传参和避免篡改）
 
   supr.prototype.sayName = function(){
@@ -41,8 +42,9 @@ function extend(options) {
     let protoComponents = supr.prototype.components;
     protoComponents = typeof protoComponents === 'object' ? protoComponents : {}
     let comObj = {};
-    console.log('extend', new fn(options));
-    comObj[componentName] = new fn(options);
+    let componentInstance = new fn(options) 
+    componentInstance.$root = getRootNode();
+    comObj[componentName] = componentInstance;
     supr.prototype.components = Object.assign(protoComponents, comObj)
   }
   // 将父类原型指向子类
