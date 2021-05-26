@@ -18,12 +18,11 @@ let Com2 = Zoey.extend({
   handleShow() {
     this.data.pid ++;
     console.log('🥶🥶🥶🥶');
-    console.log(this);
   },
 })
 
 let Com1 = Zoey.extend({
-  template: `<div class='show' on-click={this.handleClick()}><modal modalName={modalName}></modal></div>`,
+  template: `<div class='show' on-click={this.handleClick(ok,$event)}><modal modalName={modalName}></modal></div>`,
   data: {
     ok: true,
     show: false,
@@ -36,7 +35,8 @@ let Com1 = Zoey.extend({
   body: '<h1>你好我是何帆</h1>',
   handleClick(value, $event) {
     console.log('🦊🦊');
-    console.log(this);
+    console.log('value', value);
+    console.log('$event', $event);
     this.data.myclass = 'hhh';
   }
 })

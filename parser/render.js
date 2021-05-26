@@ -116,7 +116,7 @@ function render(astNode) {
             if (paramName === '$event') {
               return $event;
             }
-            return currentContext.data[paramName];
+            return currentContext.data[paramName] || paramName;
           })
         }
         if (currentContext[handlerName] instanceof Function) {
@@ -130,6 +130,7 @@ function render(astNode) {
         }
         // 如果是组件的上下文则需要将context代入到digest中;
         context.digest();
+        // componentContext.rootContext.update()
       }
       targetNode.addEventListener(eventName, listener.bind(currentContext));
       return targetNode;

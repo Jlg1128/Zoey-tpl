@@ -7,19 +7,16 @@
   <title>Document</title>
 </head>
 <body>
-  <ul>
-    <li>1</li>
-    <li>2</li>
-    <li id="li1">3</li>
-  </ul>
-  <div>
-    123
+  <div onclick="handleClick()">
+    <span onclick="handleClick2()">点击</span>
   </div>
-  <span class="">哈哈哈</span>
   <script>
-    let text = document.createTextNode('123');
-    let span = document.createElement('div');
-    console.log(span.nodeType);
+    function handleClick() {
+      console.log(123);
+    }
+    function handleClick2() {
+      console.log(456);
+    }
   </script>
 </body>
 </html>

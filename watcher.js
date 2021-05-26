@@ -56,14 +56,15 @@ function patch() {
     context.current = cloneDeep(context.template);
     context.setValue(context.current, context.data)
   }
-  console.log('old', context.old);
-  console.log('current', context.current);
   diff.call(context, context.$root, context.old, context.current);
 }
 
 function update() {
-  let { rootContext } = this;
-  rootContext.digest();
+  if (this.rootContext) {
+    this.rootContext.update();
+  } else {
+    this.digest();
+  }
 }
 
 function diff(parentDom, oldAst, newAst) {
@@ -115,7 +116,7 @@ function diff(parentDom, oldAst, newAst) {
 
       } else {
         if (parentDom) {
-          if (parentDom.children === null || !parentDom.children.length)  {
+          if (parentDom.children === null || !parentDom.children.length) {
             updateElement(parentDom, oldCh, newCh);
           } else {
             updateElement(parentDom.children[newStartIndex], oldCh, newCh);
