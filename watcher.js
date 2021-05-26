@@ -5,10 +5,11 @@ import Zoey from './Zoey';
 
 // 监听data改变
 function watcher(property, callback, value) {
+  let context = this;
   if (!this.watchersArr) {
     this.watchersArr = [];
   }
-  this.watchersArr.push({ property, callback, oldValue: value })
+  this.watchersArr.push({ property, callback, oldValue: value, context })
 };
 
 // 脏检查
@@ -16,8 +17,8 @@ function digest(componentContext) {
   this.dirty = false;
   let context = componentContext || this;
   context.watchersArr.forEach((watcher) => {
-    let { property, callback, oldValue } = watcher;
-    let newValue = context[watcher.property];
+    let { property, callback, oldValue, context: currentContext } = watcher;
+    let newValue = currentContext[watcher.property];
     if (isEqual(oldValue, newValue)) {
       watcher.dirty = false;
     } else if (oldValue === newValue) {
@@ -55,37 +56,46 @@ function patch() {
     context.current = cloneDeep(context.template);
     context.setValue(context.current, context.data)
   }
+  console.log('old', context.old);
+  console.log('current', context.current);
   diff.call(context, context.$root, context.old, context.current);
+}
+
+function update() {
+  let { rootContext } = this;
+  rootContext.digest();
 }
 
 function diff(parentDom, oldAst, newAst) {
   let context = this;
   if (parentDom && (oldAst && newAst)) {
-    updateElement(parentDom, oldAst, newAst);
+    updateElement(parentDom.children[0], oldAst, newAst);
   }
-  function updateElement(parentDom, oldAst, newAst) {
+  function updateElement(currentDom, oldAst, newAst) {
     if (newAst.type !== oldAst.type || newAst.tag !== oldAst.tag) {
       parentDom.appendChild(context.render(newAst));
     } else {
       if (newAst.children === null) {
-        parentDom.innerHTML = '';
+        currentDom.innerHTML = '';
       } else if (oldAst.children === null) {
-        parentDom.appendChild(context.render(newAst));
+        currentDom.appendChild(context.render(newAst));
       } else {
         if (newAst.type === 'text') {
           if (newAst.text !== oldAst.text) {
-            parentDom.innerHTML = newAst.text;
+            currentDom.innerHTML = newAst.text;
           }
         }
 
-        if (!(oldAst instanceof ElementNode) || !(newAst instanceof ElementNode)) {
-          updateAttr(parentDom, oldAst.current.attrs, newAst.current.attrs);
+        if (isComponentObj(oldAst) && isComponentObj(newAst)) {
+          updateAttr(currentDom, oldAst.current.attrs, newAst.current.attrs);
         } else {
-          updateAttr(parentDom, oldAst.attrs, newAst.attrs);
+          updateAttr(currentDom, oldAst.attrs, newAst.attrs);
         }
         let oldAstChildren = getAstChildren(oldAst.children);
         let newAstChildren = getAstChildren(newAst.children);
-        updateChildren(parentDom, oldAstChildren, newAstChildren);
+        if (newAstChildren && newAstChildren.length) {
+          updateChildren(currentDom, oldAstChildren, newAstChildren);
+        }
       }
     }
     return parentDom;
@@ -104,8 +114,12 @@ function diff(parentDom, oldAst, newAst) {
       } else if (newCh === oldCh) {
 
       } else {
-        if (parentDom.children !== null) {
-          updateElement(parentDom.children[newStartIndex], oldCh, newCh);
+        if (parentDom) {
+          if (parentDom.children === null || !parentDom.children.length)  {
+            updateElement(parentDom, oldCh, newCh);
+          } else {
+            updateElement(parentDom.children[newStartIndex], oldCh, newCh);
+          }
         }
       }
       oldStartIndex++;
@@ -134,7 +148,7 @@ function diff(parentDom, oldAst, newAst) {
   return parentDom;
 }
 
-function isComponentObj(obj) {
+export function isComponentObj(obj) {
   return obj && obj.current && (obj.current instanceof ElementNode) && !(obj instanceof ElementNode);
 }
 
@@ -147,8 +161,11 @@ function getAstChildren(astChildren) {
   })
 }
 
+
+
 export {
   watcher,
   digest,
   patch,
+  update,
 };

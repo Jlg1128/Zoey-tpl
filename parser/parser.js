@@ -23,6 +23,7 @@ function getTagTypesMap(tagsArr, type) {
 }
 
 let attrTypesMap = {
+  id: 'attribute',
   class: 'attribute',
   style: 'style',
 }
@@ -170,7 +171,8 @@ function parser(parentNode, tpl, type, condition) {
         throw new SyntaxError('语法错误');
       }
       for (let i = nodeStack.length - 1; i >= 0; i--) {
-        if (nodeStack[i].tag === tag) {
+        // nodeStack[i].name === tag 主要是为了处理componentNode
+        if (nodeStack[i].tag === tag || nodeStack[i].name === tag) {
           let result = nodeStack[0];
           nodeStack = nodeStack.slice(0, i);
           if (i === 0 && tpl.length === 0) {
@@ -202,9 +204,9 @@ function parser(parentNode, tpl, type, condition) {
     else if (attrReg.test(tpl)) {
       let tagInitialStr = tpl.match(attrReg)[0];
       // 防止函数参数中间有空格
-      if (/\(/.test(tpl)) {
-        tagInitialStr = tpl.match(/[\w-]+[=]{1}[\s\S]+?}/g)[0];
-      }
+      // if (/\(/.test(tpl)) {
+      //   tagInitialStr = tpl.match(/[\w-]+[=]{1}[^\s]+?}/g)[0];
+      // }
       let typeAndValueArr = tagInitialStr.split('=');
       let attrNode = handleParseAttr(typeAndValueArr[0], typeAndValueArr[1].replace(/'/g, ''));
       let currentNode = nodeStack[nodeStack.length - 1];
@@ -265,7 +267,7 @@ function parser(parentNode, tpl, type, condition) {
       let innerTpl, len;
       innerTpl = tpl.match(innerReg)[1];
       len = tpl.match(innerReg)[0].length - 1
-      if (innerTpl) {
+      if (innerTpl && innerTpl.trim()) {
         let textNode = new ElementNode('text', innerTpl);
         pushChilren(textNode);
       }

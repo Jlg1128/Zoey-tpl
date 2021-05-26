@@ -6,6 +6,7 @@ import {
   watcher,
   digest,
   patch,
+  update,
 } from './watcher';
 import { ElementNode } from '../j-tpl/parser/parser';
 import { cloneDeep } from 'loadsh';
@@ -55,6 +56,7 @@ Zoey.prototype.render = render;
 Zoey.prototype.watcher = watcher;
 Zoey.prototype.digest = digest;
 Zoey.prototype.patch = patch;
+Zoey.prototype.update = update;
 Zoey.prototype.setValue = setValue;
 
 export default Zoey;

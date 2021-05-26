@@ -2,8 +2,10 @@ import Zoey from '../Zoey';
 import parser, { ElementNode, ComponentNode } from './parser';
 import { cloneDeep } from 'loadsh';
 import { handleParseExpression } from '../util';
+import { isComponentObj } from '../watcher';
 
 export function setValue(astNode, data) {
+  let context = this;
   let currentNode = astNode;
   let result = [];
   let finalAstNode = null;
@@ -28,11 +30,12 @@ export function setValue(astNode, data) {
     let componentContext = currentNode.context;
     let componentInstanceData = Object.assign(componentContext.data, parseComponentParams(currentNode.params, data));
     componentContext.current = cloneDeep(componentContext.template);
+    componentContext.rootContext = context;
     componentContext.setValue(componentContext.current, componentInstanceData);
     currentNode = componentContext;
   } else {
     currentNode.attrs.forEach((attr) => setAttrValue(attr, data))
-    currentNode.children = currentNode.children.map((childAst) => setValue(childAst, data))
+    currentNode.children = currentNode.children.map((childAst) => setValue.call(context, childAst, data))
   }
   return currentNode;
 }
@@ -68,7 +71,7 @@ function render(astNode) {
 
   function renderElement(astNode, data) {
     let res = astNode instanceof ElementNode;
-    if (!(astNode instanceof ElementNode)) {
+    if (isComponentObj(astNode)) {
       componentContext = astNode;
       astNode = astNode.current;
       data = astNode.data;
@@ -105,8 +108,8 @@ function render(astNode) {
 
     function createEvent(targetNode, eventName, handlerName, paramsArr) {
       let event = new Event(eventName);
-      targetNode.addEventListener(eventName, function ($event) {
-        let currentContext = componentContext || context;
+      let currentContext = componentContext || context;
+      function listener($event) {
         // 处理模版中携带的形式参数,例如on-click={this.handle($event, show)}
         function getProcessedParam(paramsArr) {
           return paramsArr.map((paramName) => {
@@ -126,12 +129,9 @@ function render(astNode) {
           }
         }
         // 如果是组件的上下文则需要将context代入到digest中;
-        if (componentContext) {
-          context.digest(componentContext);
-        } else {
-          context.digest();
-        }
-      });
+        context.digest();
+      }
+      targetNode.addEventListener(eventName, listener.bind(currentContext));
       return targetNode;
     }
 
