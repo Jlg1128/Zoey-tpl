@@ -1,5 +1,5 @@
 import { isEqual, cloneDeep } from 'lodash';
-import parser, { ElementNode } from './parser/parser';
+import parser, { ComponentNode, ElementNode } from './parser/parser';
 import render from './parser/render';
 import Zoey from './Zoey';
 
@@ -39,7 +39,12 @@ function digest(componentContext) {
   }
   if (this.dirty) {
     this.dirty = false;
-    this.digest(componentContext);
+    if (componentContext) {
+      this.digest(componentContext);
+    } else {
+      this.digest();
+    }
+    // this.digest(componentContext);
   } else {
     if (this.digestCount > 0) {
       this.patch();
@@ -102,6 +107,7 @@ function diff(parentDom, oldAst, newAst) {
     return parentDom;
   }
 
+  // 这个diff children很傻，随便写的，先实现功能吧
   function updateChildren(parentDom, oldChildren, newChildren) {
     let oldStartIndex = 0;
     let oldENdIndex = oldChildren.length - 1;
@@ -111,9 +117,15 @@ function diff(parentDom, oldAst, newAst) {
       let newCh = newChildren[newStartIndex];
       let oldCh = oldChildren[oldStartIndex];
       if (newCh.type !== oldCh.type || newCh.tag !== oldCh.tag) {
-        parentDom.replaceChild(context.render(oldCh), context.render(newCh));
+        // 解决<div>123</div>，此处div是没有children的，
+        // 所以用下面这这方法判断这种情况，然后进行相应的替换
+        if (!parentDom.children[oldStartIndex]) {
+          parentDom.innerHTML = '';
+          parentDom.appendChild(context.render(newCh));
+        } else {
+          parentDom.children[oldStartIndex].replaceWith(context.render(newCh));
+        }
       } else if (newCh === oldCh) {
-
       } else {
         if (parentDom) {
           if (parentDom.children === null || !parentDom.children.length) {
@@ -129,6 +141,15 @@ function diff(parentDom, oldAst, newAst) {
     if (oldChildren.length < newChildren.length) {
       for (var i = 0; i < newChildren.length - oldChildren.length; i++) {
         parentDom.appendChild(context.render(newChildren[oldChildren.length + i]))
+      }
+    }
+
+    if (oldChildren.length > newChildren.length) {
+      let idx = oldChildren.length - newChildren.length;
+      while (idx > 0) {
+        let mv = parentDom.children[idx + newChildren.length - 1];
+        parentDom.removeChild(mv)
+        idx--;
       }
     }
   }

@@ -8,28 +8,50 @@ let node = document.createElement('div');
 node.innerHTML = '呵呵';
 
 // new Zoey().$inject(getRootNode(), node);
-let Com2 = Zoey.extend({
+// let Com2 = Zoey.extend({
+//   name: 'modal',
+//   template: `<span on-click={this.handleShow()} class={modalclass}>{modalName}{pid}我是</span>`,
+//   data: {
+//     pid: 10211,
+//     modalclass: 'modal-show'
+//   },
+//   handleShow() {
+//     this.data.pid ++;
+//     console.log('🥶🥶🥶🥶');
+//   },
+// })
+
+let Modal = Zoey.extend({
   name: 'modal',
-  template: `<span on-click={this.handleShow()} class={modalclass}>{modalName}{pid}我是</span>`,
+  template: '<div>这是Modal</div>',
   data: {
-    pid: 10211,
-    modalclass: 'modal-show'
+    modal: '123',
   },
-  handleShow() {
-    this.data.pid ++;
-    console.log('🥶🥶🥶🥶');
-  },
-})
+});
 
 let Com1 = Zoey.extend({
-  template: `<div class='show' on-click={this.handleClick(ok,$event)}><modal modalName={modalName}></modal></div>`,
+  template: `<div id='com1'>
+  <button class='btn-style' on-click={this.handleClick()}>测试</button>
+  {#if show}
+  {#if ok}
+  <modal></modal>
+  {#else}
+  <span>哈哈哈哈</span>
+  {/if}
+  {#else}
+  <div>
+  <span>不展示</span>
+  </div>
+  {/if}
+  </div>`,
   data: {
-    ok: true,
-    show: false,
+    ok: false,
+    show: true,
     myclass: 'show',
     username: 1,
     id: 'wrapper',
-    modalName: '这是modal的名字'
+    modalName: '这是modal的名字',
+    needok: true,
   },
   show: true,
   body: '<h1>你好我是何帆</h1>',
@@ -37,7 +59,8 @@ let Com1 = Zoey.extend({
     console.log('🦊🦊');
     console.log('value', value);
     console.log('$event', $event);
-    this.data.myclass = 'hhh';
+    this.data.show = !this.data.show;
+    this.data.ok = true;
   }
 })
 

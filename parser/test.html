@@ -7,16 +7,12 @@
   <title>Document</title>
 </head>
 <body>
-  <div onclick="handleClick()">
-    <span onclick="handleClick2()">点击</span>
-  </div>
+  <div id="div">jj</div>
   <script>
-    function handleClick() {
-      console.log(123);
-    }
-    function handleClick2() {
-      console.log(456);
-    }
+    let div = document.getElementById('div');
+    let text = document.createTextNode('123');
+    div.appendChild(text);
+    console.log(div.children);
   </script>
 </body>
 </html>

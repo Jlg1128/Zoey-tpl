@@ -9,7 +9,7 @@ import {
 // let tpl = `<div class='show'>{#if show}<span>{username}</span>{/if}</div>`;
 let tpl = `<div><span>{show}</span></div>`;
 
-const elementTag = ['div', 'span', 'p', 'h1', 'ul', 'li', 'img', 'text'];
+const elementTag = ['div', 'span', 'p', 'h1', 'ul', 'li', 'img', 'text', 'button'];
 const textTag = ['text'];
 
 let tagTypesMap = Object.assign(getTagTypesMap(elementTag, 'element'), getTagTypesMap(textTag, 'text'))
@@ -108,6 +108,7 @@ let isParam = function (tpl) {
   return !/{(?=#)/.test(tpl) && /{/.test(tpl);
 }
 
+
 function parser(parentNode, tpl, type, condition) {
   let nodeStack = [];
   let expressionStack = [];
@@ -135,7 +136,7 @@ function parser(parentNode, tpl, type, condition) {
     return getParentNode();
   }
   function pushConditionOrChildren(conditionNode, condition, type) {
-    if (conditionNode && conditionNode instanceof ElementNode) {
+    if (conditionNode && (conditionNode instanceof ElementNode || conditionNode instanceof ComponentNode)) {
       conditionNode[type] = condition;
       conditionNode.condition = condition;
       getParentNode().conditions.push(conditionNode);
@@ -152,16 +153,20 @@ function parser(parentNode, tpl, type, condition) {
       return parentNode;
     }
   }
+
   if (tpl && typeof tpl === 'string') {
     tpl = tpl.replace(/\n/g, '');
   }
+
   while (true) {
     if (!tpl || tpl.length === 0) {
       break;
     }
     // 匹配标签开始前缀
     if (!/<|>/g.test(tpl)) {
-      pushChilren(new ElementNode('text', tpl));
+      if (tpl && tpl.trim()) {
+        pushChilren(new ElementNode('text', tpl));
+      }
       tpl = tpl.slice(tpl.length);
     }
     else if (tagSuffixReg.test(tpl)) {
@@ -189,6 +194,7 @@ function parser(parentNode, tpl, type, condition) {
       let node;
       if (!elementTag.includes(tag)) {
         // 代表是Component，直接获取组件
+        console.log('ctx', context);
         if (context.components && context.components[tag]) {
           node = new ComponentNode(tag, context.components[tag], [])
         } else {
@@ -224,9 +230,22 @@ function parser(parentNode, tpl, type, condition) {
         let ifBody = getExpressionBody(tpl);
         len = ifBody.length;
         ifBody = ifBody.body.match(/^{#if[\s\S]+?}([\s\S]+?){\/if}$/)[1];
-        getParentNode().if = option;
+        let parent = getParentNode();
+        // 代表在if或者list中嵌套
+        if (isExpmode) {
+          let optionNode = new ElementNode('div');
+          optionNode.if = option;
+          // level表示嵌套
+          optionNode.level = 1;
+          optionNode.parentOption = parent.if;
+          parent.conditions.push(optionNode);
+          context.parser(optionNode, ifBody, 'if', option);
+        } else {
+          parent.if = option;
+          parent.level = 0;
+          context.parser(parent, ifBody, 'if', option);
+        }
         pushConditionOrChildren(null, option, 'if');
-        let node = parser(getParentNode(), ifBody, 'if', option);
         tpl = tpl.slice(len);
       }
       else if (/^{#elseif/.test(tpl)) {
@@ -236,28 +255,31 @@ function parser(parentNode, tpl, type, condition) {
         let elseifBody = elseifBodyObj.body.slice(optionLen);
         getParentNode().elseif = option;
         pushConditionOrChildren(null, option, 'elseif');
-        let node = parser(getParentNode(), elseifBody, 'elseif', option);
+        let node = context.parser(getParentNode(), elseifBody, 'elseif', option);
         tpl = tpl.slice(elseifBodyObj.length);
       }
       else if (/^{#else[\s\n\t]*}/.test(tpl)) {
         pushConditionOrChildren(null, '', 'else');
         let len = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[0].length;
         let elseBody = tpl.match(/^{#else[\s\n\t]*}([\s\S]+?)$/)[1]
-        parser(getParentNode(), elseBody, 'else', '');
+        context.parser(getParentNode(), elseBody, 'else', '');
         tpl = tpl.slice(len);
       }
       else if (/^{#inc[\s\n\t]*[\s\S]+}/.test(tpl)) {
         let len = tpl.match(/^{#inc[\s\n\t]*([\s\S]+?)}/)[0].length;
         let incBody = tpl.match(/^{#inc[\s\n\t]*([\s\S]+?)}/)[1];
         let resultTpl = handleParseExpression.call(context, incBody, false);
-        parser(getParentNode(), eval(resultTpl));
+        context.parser(getParentNode(), eval(resultTpl));
         tpl = tpl.slice(len);
       }
       else {
         if (tpl.match(/{[\s\S]+?}/)[0]) {
-          let node = new ElementNode('text', tpl.match(/{[\s\S]+?}/)[0]);
+          let text = tpl.match(/{[\s\S]+?}/)[0];
+          // if (text && text.trim()) {
+          let node = new ElementNode('text', text);
           pushChilren(node);
-          tpl = tpl.slice(tpl.match(/{[\s\S]+?}/)[0].length);
+          // }
+          tpl = tpl.slice(text.length);
         } else {
           tpl = tpl.slice(1);
         }

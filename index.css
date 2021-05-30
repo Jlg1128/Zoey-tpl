@@ -5,3 +5,6 @@
 .black {
   color: black;
 }
+.btn-style {
+  border: 1px solid pink;
+}

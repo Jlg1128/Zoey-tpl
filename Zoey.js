@@ -29,11 +29,20 @@ function Zoey(options) {
     context.constructor.prototype.template = template;
     context.current = cloneDeep(template);
     context.setValue(context.current, this.data);
+    // 相关生命周期，暂时先放在这里
+    // context.config && context.config(context.data)
+    // context.init && context.init(context.data)
+    // context.destroy && context.destroy()
+
+    console.log('👹👹👹contextbeforerender', context);
+    console.log('👹👹👹templatebeforerender', context.template);
     let renderDom = context.render();
     if (context.$root) {
       context.$root.appendChild(renderDom);
       renderDom = $root;
     }
+    console.log('👹👹👹context', context);
+    console.log('👹👹👹template', context.template);
     context.renderDom = renderDom;
   }
 }
@@ -42,21 +51,20 @@ Zoey.extend = extend;
 Zoey.implement = implement;
 Zoey.implement({
   $inject: inject,
-  config: function () {
+  inject,
+  parser,
+  render,
+  watcher,
+  digest,
+  patch,
+  update,
+  setValue,
+  config: function (data) {
     console.log('config');
   },
   init() {
     console.log('init');
   },
 });
-
-Zoey.prototype.inject = inject;
-Zoey.prototype.parser = parser;
-Zoey.prototype.render = render;
-Zoey.prototype.watcher = watcher;
-Zoey.prototype.digest = digest;
-Zoey.prototype.patch = patch;
-Zoey.prototype.update = update;
-Zoey.prototype.setValue = setValue;
 
 export default Zoey;

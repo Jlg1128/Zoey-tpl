@@ -11,10 +11,10 @@ export function setValue(astNode, data) {
   let finalAstNode = null;
   // 处理if条件，将conditions根据当前data赋值到currentNode的children上
   if (currentNode.conditions && currentNode.conditions.length) {
-    let currentCondition = getConditionResult(currentNode.conditions, data);
-    currentNode.children = currentCondition ? currentCondition : [];
+    // let currentCondition = getConditionResult(currentNode.conditions, data);
+    currentNode = processConditionToChildren(currentNode, data);
   }
-  delete currentNode.conditions;
+  // delete currentNode.conditions;
   switch (currentNode.tag) {
     case 'text':
       while (/({[\s\S]+})/.test(currentNode.text)) {
@@ -35,7 +35,9 @@ export function setValue(astNode, data) {
     currentNode = componentContext;
   } else {
     currentNode.attrs.forEach((attr) => setAttrValue(attr, data))
-    currentNode.children = currentNode.children.map((childAst) => setValue.call(context, childAst, data))
+    if (Array.isArray(currentNode.children)) {
+      currentNode.children = currentNode.children.map((childAst) => setValue.call(context, childAst, data)) || []
+    }
   }
   return currentNode;
 }
@@ -192,22 +194,49 @@ function getParsedVariableName(variableName) {
   return variableNameMatchedArr[1].trim();
 }
 
+function processConditionToChildren(currentNode, data) {
+  if (currentNode.conditions) {
+    let childAst = getConditionResult(currentNode.conditions, data);
+    console.log('childAst', childAst);
+    if (childAst && (childAst instanceof ElementNode || childAst instanceof ComponentNode)) {
+      currentNode.children.push(childAst);
+    }
+    //@Todo 组件的data情况，待处理
+    // processConditionToChildren(currentCondition, data);
+  }
+  return currentNode;
+}
 function getConditionResult(conditions, data) {
   let expressionKey = [];
-  let result = conditions.map((conditionObj) => {
-    if (conditionObj.if && parseOption(conditionObj.if, data)) {
+  let result = [];
+  let i = 0;
+  while (i < conditions.length) {
+    let conditionObj = conditions[i];
+    if (conditionObj.level) {
+      if (parseOption(conditionObj.parentOption, data)) {
+        return getConditionResult(conditionObj.conditions, data)
+      } else {
+
+        i++;
+        continue;
+      }
+    } else if (conditionObj.if && parseOption(conditionObj.if, data)) {
       expressionKey.push('if');
+      result.push(conditionObj);
       return conditionObj;
     } else if (conditionObj.elseif && parseOption(conditionObj.elseif, data)) {
       expressionKey.push('elseif');
+      result.push(conditionObj);
       return conditionObj;
     } else if (conditionObj.hasOwnProperty('else')) {
       expressionKey.push('else');
+      result.push(conditionObj);
       return conditionObj;
     } else {
-      return null;
+      // return null;
     }
-  });
+    i++;
+  }
   // 筛选if表达式情况Fragment类型的元素
   result = result.filter((item) => item);
   return result.filter((item) => item[expressionKey[0]] === result[0][expressionKey[0]]);
