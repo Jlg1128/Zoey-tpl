@@ -30,20 +30,9 @@ let Modal = Zoey.extend({
 });
 
 let Com1 = Zoey.extend({
-  template: `<div id='com1'>
-  <button class='btn-style' on-click={this.handleClick()}>测试</button>
-  {#if show}
-  {#if ok}
-  <modal></modal>
-  {#else}
-  <span>哈哈哈哈</span>
-  {/if}
-  {#else}
-  <div>
-  <span>不展示</span>
-  </div>
-  {/if}
-  </div>`,
+  template: `<div>{#list item in users by item.name}<div>{item.name}</div>{/list}
+  <button on-click={this.handleClick()}>点击</button></div>`,
+  // template: `<div>{}</div>`,
   data: {
     ok: false,
     show: true,
@@ -52,6 +41,17 @@ let Com1 = Zoey.extend({
     id: 'wrapper',
     modalName: '这是modal的名字',
     needok: true,
+    users: [
+      {
+        name: 'jlg',
+      },
+      {
+        name: 'hefan',
+      },
+      {
+        name: 'hefan',
+      },
+    ],
   },
   show: true,
   body: '<h1>你好我是何帆</h1>',
@@ -59,8 +59,9 @@ let Com1 = Zoey.extend({
     console.log('🦊🦊');
     console.log('value', value);
     console.log('$event', $event);
-    this.data.show = !this.data.show;
-    this.data.ok = true;
+    this.data.users.push({ name: 'xixi' });
+    // this.data.show = !this.data.show;
+    // this.data.ok = true;
   }
 })
 

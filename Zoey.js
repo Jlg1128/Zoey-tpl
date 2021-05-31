@@ -15,6 +15,7 @@ import im from 'immutable';
 function Zoey(options) {
   let context = this;
   let template;
+
   if (typeof this.template === 'string') {
     template = this.parser(null, this.template);
   }
@@ -23,17 +24,17 @@ function Zoey(options) {
     console.log('😀值改变了')
   }
 
+
   if (template) {
     let oldValue = JSON.parse(JSON.stringify(this.data));
     this.watcher('data', listener, oldValue);
     context.constructor.prototype.template = template;
-    context.current = cloneDeep(template);
-    context.setValue(context.current, this.data);
+    context.current = context.setValue(cloneDeep(template), this.data);
     // 相关生命周期，暂时先放在这里
     // context.config && context.config(context.data)
     // context.init && context.init(context.data)
     // context.destroy && context.destroy()
-
+    console.log('current1', context.current);
     console.log('👹👹👹contextbeforerender', context);
     console.log('👹👹👹templatebeforerender', context.template);
     let renderDom = context.render();

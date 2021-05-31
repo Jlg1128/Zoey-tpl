@@ -10,14 +10,20 @@ export function setValue(astNode, data) {
   let result = [];
   let finalAstNode = null;
   // 处理if条件，将conditions根据当前data赋值到currentNode的children上
+
   if (currentNode.conditions && currentNode.conditions.length) {
     // let currentCondition = getConditionResult(currentNode.conditions, data);
     currentNode = processConditionToChildren(currentNode, data);
   }
+  console.log('astNode', astNode);
+  if (astNode.isFake) {
+    astNode = currentNode.children[0];
+  }
+
   // delete currentNode.conditions;
   switch (currentNode.tag) {
     case 'text':
-      while (/({[\s\S]+})/.test(currentNode.text)) {
+      if (/({[\s\S]+})/.test(currentNode.text)) {
         currentNode.text = currentNode.text.replace(/({[\s\S]+?})/, getParsedVariable(currentNode.text, '{}', data) || '')
       }
       break;
@@ -33,13 +39,44 @@ export function setValue(astNode, data) {
     componentContext.rootContext = context;
     componentContext.setValue(componentContext.current, componentInstanceData);
     currentNode = componentContext;
+
+  } else if (currentNode.type === 'expression' && currentNode.name === 'list') {
+    if (currentNode.body instanceof ElementNode) {
+      if (!currentNode.listsName) {
+        throw new ReferenceError(`${currentNode.listsName}未定义`);
+      }
+      let list = context.data[currentNode.listsName]
+      if (!Array.isArray(list)) {
+        throw new TypeError(`${currentNode.listsName}必须为数组`)
+      }
+      let parentNode = null;
+      console.log('cur😃', currentNode);
+      if (currentNode.parentNode) {
+        parentNode = currentNode.parentNode;
+      } else {
+        parentNode = new ElementNode('div');
+        parentNode.isFake = true;
+      }
+      parentNode.children = list.map((item, index) => {
+        let itemAst = cloneDeep(currentNode.body);
+        if (!currentNode.itemKeyName || /index/.test(currentNode.itemKeyName)) {
+          itemAst.key = index;
+        } else {
+          let vars = currentNode.itemKeyName.trim().replace(/{}/g, '').split('.').slice(1);
+          itemAst.key = getDataFromTpl(vars, list[index]);
+        }
+        return setValue.call(context, itemAst, list[index])
+      });
+      console.log('fakeNode', parentNode);
+      return parentNode;
+    }
   } else {
-    currentNode.attrs.forEach((attr) => setAttrValue(attr, data))
-    if (Array.isArray(currentNode.children)) {
+    currentNode.attrs && currentNode.attrs.forEach((attr) => setAttrValue(attr, data))
+    if (Array.isArray(currentNode.children) && currentNode.children.length) {
       currentNode.children = currentNode.children.map((childAst) => setValue.call(context, childAst, data)) || []
     }
   }
-  return currentNode;
+  return astNode;
 }
 function parseComponentParams(params, data) {
   let extraData = {};
@@ -98,6 +135,7 @@ function render(astNode) {
       case 'text':
         domnode = document.createTextNode(text);
         break;
+
       case 'component':
       default:
         throw new TypeError(`未识别该标签名--${type}`)
@@ -158,14 +196,27 @@ function render(astNode) {
     }
     return domnode;
   }
-
   return finalDomNode;
+}
+// 解析{user.name}这种表达式
+function getDataFromTpl(arr, data) {
+  let i = 0;
+  let curData = data;
+  while (i < arr.length) {
+    curData = curData[arr[i]];
+    i++;
+  }
+  return curData
 }
 function getParsedVariable(variableName, sign, data) {
   let signArr = sign.trim().split('');
-  new RegExp(`[\\s\\t\\n]*${signArr[0]}([\\s\\S]+?)${signArr[1]}`)
+  // new RegExp(`[\\s\\t\\n]*${signArr[0]}([\\s\\S]+?)${signArr[1]}`);
+  variableName = variableName.match(/[\s\n]*{([\s\S]+?)}/)[1]
   if (variableName) {
-    if (/[\s\t\n]*{([\w]+?)}/.test(variableName)) {
+    if (/\./.test(variableName)) {
+      let vars = variableName.trim().split('.').slice(1);
+      return getDataFromTpl(vars, data);
+    } else if (/[\s\t\n]*{([\w]+?)}/.test(variableName)) {
       return data[getParsedVariableName(variableName)];
     } else {
       if (variableName) {
@@ -197,7 +248,6 @@ function getParsedVariableName(variableName) {
 function processConditionToChildren(currentNode, data) {
   if (currentNode.conditions) {
     let childAst = getConditionResult(currentNode.conditions, data);
-    console.log('childAst', childAst);
     if (childAst && (childAst instanceof ElementNode || childAst instanceof ComponentNode)) {
       currentNode.children.push(childAst);
     }

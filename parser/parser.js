@@ -63,6 +63,17 @@ export function ComponentNode(componentName, componentInstance, params) {
   this.context = componentInstance;
   this.params = params;
 }
+
+export function ListNode(listsName, itemName, itemKeyName) {
+  this.children = [];
+  this.listsName = listsName;
+  this.itemName = itemName;
+  this.itemKeyName = itemKeyName;
+  this.type = 'expression';
+  this.name = 'list';
+  this.body = null;
+}
+
 function ExpressionNode(name, expressionTpl, data, option) {
   // this.expressionTpl = expressionTpl;
   // this.tpl = 
@@ -116,6 +127,7 @@ function parser(parentNode, tpl, type, condition) {
   let isExpmode = !!type;
   function pushChilren(node) {
     let parent = getParentNode();
+    // node.parentNode = parent;
     if (isExpmode && (parent['if'] || parent['elseif'] || parent['else']) && nodeStack.length === 0) {
       pushConditionOrChildren(node, parent[type], type);
     } else {
@@ -148,8 +160,9 @@ function parser(parentNode, tpl, type, condition) {
     } else {
       // 具体逻辑待处理
       if (!parentNode) {
-        parentNode = context.$root;
-      };
+        // parentNode = new ElementNode('div');
+        // parentNode.isFake = true;
+      }
       return parentNode;
     }
   }
@@ -225,7 +238,7 @@ function parser(parentNode, tpl, type, condition) {
     }
     else if (/^{/.test(tpl)) {
       if (/^{#if/.test(tpl)) {
-        let len = tpl.match(/^{#if([\s\S]+?)}/).length;
+        let len;
         let option = tpl.match(/^{#if([\s\S]+?)}/)[1].trim();
         let ifBody = getExpressionBody(tpl);
         len = ifBody.length;
@@ -241,6 +254,11 @@ function parser(parentNode, tpl, type, condition) {
           parent.conditions.push(optionNode);
           context.parser(optionNode, ifBody, 'if', option);
         } else {
+          if (!parent) {
+            parentNode = new ElementNode('div');
+            parent = parentNode
+            parent.isFake = true;
+          }
           parent.if = option;
           parent.level = 0;
           context.parser(parent, ifBody, 'if', option);
@@ -270,6 +288,19 @@ function parser(parentNode, tpl, type, condition) {
         let incBody = tpl.match(/^{#inc[\s\n\t]*([\s\S]+?)}/)[1];
         let resultTpl = handleParseExpression.call(context, incBody, false);
         context.parser(getParentNode(), eval(resultTpl));
+        tpl = tpl.slice(len);
+      }
+      else if (/^{#list[\s\n\t]*[\s\S]+}/.test(tpl)) {
+        let len = tpl.match(/^{#list[\s\S]+?}([\s\S]+?){\/list[\s\n]*}/)[0].length
+        let listExp = tpl.match(/^{#list[\s\n\t]*([\s\S]+?)}/)[1];
+        let listBody = tpl.match(/^{#list[\s\S]+?}([\s\S]+?){\/list}/)[1]
+        let expArr = listExp.split(' ').filter((item) => item.trim());
+        let keyName = expArr.length > 3 ? expArr[expArr.length - 1] : 'index';
+        let node = new ListNode(expArr[2], expArr[0], keyName);
+        // let fakeNode = new ElementNode('div');
+        // fakeNode.isFake = true;
+        node.body = parser(null, listBody);
+        pushChilren(node);
         tpl = tpl.slice(len);
       }
       else {
